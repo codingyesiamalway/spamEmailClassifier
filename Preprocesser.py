@@ -42,13 +42,20 @@ def getTokenCountFromTokenList(tokenList):
             else:
                 dict[j] = 1
     #sorted_x = sorted(x.items(), key=operator.itemgetter(1))
-    return dict
+    listOfTuples = [(k, v) for k, v in dict.iteritems()]
+    return sorted(listOfTuples, key=lambda tup: tup[1],  reverse=True)
 
 
-x = getSpamDataSet("spamDataset")
-y = getTokenCountFromTokenList(x)
-z = sorted(y, key=y.get,  reverse=True)
-print z
+spamSet = getSpamDataSet("spamDataset")
+nonSpamList = [i[0] for i in getTokenCountFromTokenList(getSpamDataSet("nonspamDataset")) if i[1] > 2]
+spam =[ i for i in getTokenCountFromTokenList(spamSet) if i[1] > 1 and i[0] not in nonSpamList]
 
+print len(spam)
+print spam
+
+#spamWordList = [i for i in spam if i[0] not in nonSpamSet]
+
+#print len(spamWordList)
+#print spamWordList
 #x = createEmailList("spam.txt", '')
 #print x
