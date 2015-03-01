@@ -17,9 +17,6 @@ def getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, minCoun
 
     SpamWordSpamProb = [(i[0], i[1] / float(totalSpamCount)) for i in spamWordList]
 
-
-    # Add artificial prior so that probability is not 0 for non-spam
-    #totalNonSpamCount = totalNonSpamCount + sum([1 for i in SpamTokensDict if i not in nonSpamTokensDict])
     SpamWordNonSpamProb = []
     for i in spamWordList:
         if i[0] in nonSpamTokensDict:
@@ -40,15 +37,57 @@ def predict(files, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability):
         for spamWord in SpamWordSpamProb:
             if spamWord in i:
                 spamProb += math.log(SpamWordSpamProb[spamWord])
-                nonProb += math.log(SpamWordNonSpamProb[spamWord])
+                if SpamWordNonSpamProb[spamWord] != 0:
+                    nonProb += math.log(SpamWordNonSpamProb[spamWord])
+                else:
+                    nonProb = -999999999999999999999
         logOdds = spamProb - nonProb
         prob = prob + [logOdds > 0]
     return prob
 
 
-
 trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList = getTrainingTestSet("spamDataset", "nonspamDataset")
 spamWordList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability = getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, 2, 3)
 
-p = predict(trainingSetNonSpamFileList[:20], SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-print p
+p = predict(trainingSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p))  # result is 0.217729393468
+p = predict(trainingSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p))  # result is 0.973958333333
+p = predict(testSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p))  # 0.975051975052
+p = predict(testSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p))  # 0.248341625207
+
+spamWordList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability = getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, 3, 3)
+p = predict(trainingSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p))  # 0.191290824261
+p = predict(trainingSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p)) # 0.953125
+p = predict(testSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p)) # 0.952182952183
+p = predict(testSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p)) # 0.214759535655
+
+# calculate word list based on minSpamNonSpamCountDiff
+def getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, minSpamNonSpamCountDiff):
+    spamTokens = getTokenCountFromTokenList(getNormalizedTokenList(trainingSetSpamFileList))
+    nonSpamTokens = getTokenCountFromTokenList(getNormalizedTokenList(trainingSetNonSpamFileList))
+    nonSpamTokensDict = dict(nonSpamTokens)
+    SpamTokensDict = dict(spamTokens)
+
+    spamWordList =[ i for i in spamTokens if i[1] >= minSpamNonSpamCountDiff and (i[0] not in nonSpamTokensDict or i[1] - nonSpamTokensDict[i[0]]  >= minSpamNonSpamCountDiff) ]
+
+    totalSpamCount = sum([i[1] for i in spamTokens])
+    totalNonSpamCount = sum([i[1] for i in nonSpamTokens])
+
+    SpamWordSpamProb = [(i[0], i[1] / float(totalSpamCount)) for i in spamWordList]
+
+    SpamWordNonSpamProb = []
+    for i in spamWordList:
+        if i[0] in nonSpamTokensDict:
+            SpamWordNonSpamProb = SpamWordNonSpamProb + [(i[0], nonSpamTokensDict[i[0]] / float(totalNonSpamCount))]
+        else:
+            SpamWordNonSpamProb = SpamWordNonSpamProb + [(i[0], 0.0 / float(totalNonSpamCount))]
+
+    spamProbability = float(totalSpamCount) / (totalSpamCount + totalNonSpamCount)
+    return spamWordList, dict(SpamWordSpamProb), dict(SpamWordNonSpamProb), spamProbability
