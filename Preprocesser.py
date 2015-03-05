@@ -31,18 +31,25 @@ def getTrainingTestSet(spamDir, nonSpamDir):
 #                 curEmail = line
 #     return spamEmailList
 
+def getTokensFromStr(email):
+    p = re.compile(r'\w*\s*@\s\w*\s*.\s*\w*')
+    email = p.sub('emailaddr', email)
+    p = re.compile('\d*\W*(\d{3})\D*(\d{3})\D*(\d{4})')
+    email = p.sub('phoneNum', email)
+    email = email.replace('\n', '').replace('$', ' dollar ').replace('1', ' one ').replace('2', ' two ').replace('3', ' three ').replace('4', ' four ').replace('5', ' five ').replace('6', ' six ').replace('7', ' seven ').replace('8', ' eight ').replace('9', ' nine ').replace('0', ' zero ')
+    #re.sub(r'\w+:\/{2}[\d\w-]+(\.[\d\w-]+)*(?:(?:\/[^\s/]*))*', 'httpaddr', data, flags=re.MULTILINE)
+
+    re.sub('[^0-9a-z]+', '', email)
+    data = [filter(str.isalnum, i) for i in email.split()]
+    data = [i for i in data if i != '' and i != 'Subject']
+    return data
+
 def getNormalizedTokenList(fileList):
     spamEmailList = []
     for i in fileList:
         with open(i, 'r') as file :
-            data=file.read().replace('\n', '').replace('$', ' dollar ').replace('1', ' one ').replace('2', ' two ').replace('3', ' three ').replace('4', ' four ').replace('5', ' five ').replace('6', ' six ').replace('7', ' seven ').replace('8', ' eight ').replace('9', ' nine ').replace('0', ' zero ')
-
-            #re.sub(r'\w+:\/{2}[\d\w-]+(\.[\d\w-]+)*(?:(?:\/[^\s/]*))*', 'httpaddr', data, flags=re.MULTILINE)
-            re.sub(r'[\w\-][\w\-\.]+[' ']*@[' ']*[\w\-][\w\-\.]+[a-zA-Z]{1,4}', 'emailaddr', data)
-            re.sub('[^0-9a-z]+', '', data)
-            data = [filter(str.isalnum, i) for i in data.split()]
-            data = [i for i in data if i != '' and i != 'Subject']
-            spamEmailList = spamEmailList + [data]
+            data=file.read()
+            spamEmailList = spamEmailList + [getTokensFromStr(data)]
     return spamEmailList
 
 def getTokenCountFromTokenList(tokenList):

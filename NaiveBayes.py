@@ -48,15 +48,15 @@ def predict(files, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability):
 trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList = getTrainingTestSet("spamDataset", "nonspamDataset")
 spamWordList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability = getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, 2, 3)
 
-for i in testSetNonSpamFileList:
-    pre = predict([i], SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-    with open(i) as f:
-        print f.read()
-    if pre:
-        print 'spam'
-    else:
-        print 'not spam'
-    raw_input('press key to continue')
+# for i in testSetNonSpamFileList:
+#     pre = predict([i], SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+#     with open(i) as f:
+#         print f.read()
+#     if pre:
+#         print 'spam'
+#     else:
+#         print 'not spam'
+#     raw_input('press key to continue')
 
 
 # p = predict(trainingSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
@@ -68,15 +68,15 @@ for i in testSetNonSpamFileList:
 # p = predict(testSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
 # print sum(p) / float(len(p))  # 0.248341625207
 #
-# spamWordList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability = getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, 3, 3)
-# p = predict(trainingSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-# print sum(p) / float(len(p))  # 0.191290824261
-# p = predict(trainingSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-# print sum(p) / float(len(p)) # 0.953125
-# p = predict(testSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-# print sum(p) / float(len(p)) # 0.952182952183
-# p = predict(testSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-# print sum(p) / float(len(p)) # 0.214759535655
+spamWordList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability = getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, 3, 200)
+p = predict(trainingSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p))  # 0.191290824261
+p = predict(trainingSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p)) # 0.953125
+p = predict(testSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p)) # 0.952182952183
+p = predict(testSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
+print sum(p) / float(len(p)) # 0.214759535655
 
 # calculate word list based on minSpamNonSpamCountDiff
 def getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, minSpamNonSpamCountDiff):
