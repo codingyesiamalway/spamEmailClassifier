@@ -2,104 +2,66 @@ __author__ = 'yuzhao'
 from Preprocesser import *
 import math
 
-# return list of tuples. eg: [('ffa', 183), ('capitalfm', 169), ('floodgate', 100), ... ]
-def getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, minCountSpam, minCountNonSpam):
-    spamTokens = getTokenCountFromTokenList(getNormalizedTokenList(trainingSetSpamFileList))
-    nonSpamTokens = getTokenCountFromTokenList(getNormalizedTokenList(trainingSetNonSpamFileList))
+# returned probability distrbution is prior adjusted and has no zero value
+def getSpamWordList(trainingSpamTokenList, trainingNonSpamTokenList, minCountSpamForSpam, minCountNonSpamForSpam, minCountSpamForNonSpam, minCountNonSpamForNonSpam):
+    spamTokens = getTokenCountFromTokenList(trainingSpamTokenList)
+    nonSpamTokens = getTokenCountFromTokenList(trainingNonSpamTokenList)
+
     nonSpamTokensDict = dict(nonSpamTokens)
-    SpamTokensDict = dict(spamTokens)
+    spamTokensDict = dict(spamTokens)
 
-    nonSpamList = [i[0] for i in nonSpamTokens if i[1] >= minCountNonSpam]
-    spamWordList =[ i for i in spamTokens if i[1] >= minCountSpam and i[0] not in nonSpamList]
+    wordList =[ i for i in spamTokensDict if spamTokensDict[i] >= minCountSpamForSpam and ( i not in nonSpamTokensDict or nonSpamTokensDict[i] <= minCountNonSpamForSpam )]
+    moreWords =  [ i for i in nonSpamTokensDict if nonSpamTokensDict[i] >= minCountNonSpamForNonSpam and ( i not in spamTokensDict or spamTokensDict[i] <= minCountSpamForNonSpam )]
+    wordList.extend(moreWords)
 
-    totalSpamCount = sum([i[1] for i in spamTokens])
-    totalNonSpamCount = sum([i[1] for i in nonSpamTokens])
+    # add prior to spamTokensDict to adjust for zero prob
+    def adjustCount(wordDict, wordList):
+        for i in wordList:
+            if i in wordDict and wordDict[i] == 0:
+                wordDict[i] = 1
 
-    SpamWordSpamProb = [(i[0], i[1] / float(totalSpamCount)) for i in spamWordList]
+    adjustCount(spamTokensDict, wordList)
+    adjustCount(nonSpamTokensDict, wordList)
 
-    SpamWordNonSpamProb = []
-    for i in spamWordList:
-        if i[0] in nonSpamTokensDict:
-            SpamWordNonSpamProb = SpamWordNonSpamProb + [(i[0], nonSpamTokensDict[i[0]] / float(totalNonSpamCount))]
-        else:
-            SpamWordNonSpamProb = SpamWordNonSpamProb + [(i[0], 0.0 / float(totalNonSpamCount))]
+    totalSpamEmailWordCount = sum([spamTokensDict[i] for i in spamTokensDict if i in wordList])
+    totalNonSpamEmailWordCount = sum([nonSpamTokensDict[i] for i in nonSpamTokensDict if i in wordList])
 
-    spamProbability = float(totalSpamCount) / (totalSpamCount + totalNonSpamCount)
-    return spamWordList, dict(SpamWordSpamProb), dict(SpamWordNonSpamProb), spamProbability
+    def getDist(wordList, totalToCountDict, count):
+        thisDict = {}
+        for i in wordList:
+            if i in totalToCountDict:
+                thisDict[i] = totalToCountDict[i] / float(count)
+        return thisDict
+
+    wordDistributionInSpam = getDist(wordList, spamTokensDict, totalSpamEmailWordCount)
+    wordDistributionInNonSpam = getDist(wordList, nonSpamTokensDict, totalNonSpamEmailWordCount)
+
+    spamProbability = float(totalSpamEmailWordCount) / (totalSpamEmailWordCount + totalNonSpamEmailWordCount)
+    return wordList, wordDistributionInSpam, wordDistributionInNonSpam, spamProbability
 
 
-def predict(files, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability):
-    emailTokens = getNormalizedTokenList(files)
+# assume dist has no zero probability
+def predict(emailTokenList, wordDistributionInSpam, wordDistributionInNonSpam, spamProbability):
     prob = []
-    for i in emailTokens:
+    spamProbAll = []
+    nonSpamProbAll = []
+    for email in emailTokenList:
         spamProb = math.log(spamProbability)
-        nonProb = math.log(1.0 - spamProbability)
-        for spamWord in SpamWordSpamProb:
-            if spamWord in i:
-                spamProb += math.log(SpamWordSpamProb[spamWord])
-                if SpamWordNonSpamProb[spamWord] != 0:
-                    nonProb += math.log(SpamWordNonSpamProb[spamWord])
-                else:
-                    nonProb = -999999999999999999999
-        logOdds = spamProb - nonProb
-        prob = prob + [logOdds > 0]
-    return prob
-
-trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList = getTrainingTestSet("spamDataset", "nonspamDataset")
-spamWordList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability = getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, 2, 3)
-
-# for i in testSetNonSpamFileList:
-#     pre = predict([i], SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-#     with open(i) as f:
-#         print f.read()
-#     if pre:
-#         print 'spam'
-#     else:
-#         print 'not spam'
-#     raw_input('press key to continue')
+        nonSpamProb = math.log(1.0 - spamProbability)
+        for j in email:
+            if j in wordDistributionInSpam:
+                spamProb += math.log(wordDistributionInSpam[j])
+            if j in wordDistributionInNonSpam:
+                nonSpamProb += math.log(wordDistributionInNonSpam[j])
+        isSpam = spamProb > nonSpamProb
+        prob = prob + [isSpam]
+        spamProbAll.append(spamProb)
+        nonSpamProbAll.append(nonSpamProb)
+    return prob, spamProbAll, nonSpamProbAll
 
 
-# p = predict(trainingSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-# print sum(p) / float(len(p))  # result is 0.217729393468
-# p = predict(trainingSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-# print sum(p) / float(len(p))  # result is 0.973958333333
-# p = predict(testSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-# print sum(p) / float(len(p))  # 0.975051975052
-# p = predict(testSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-# print sum(p) / float(len(p))  # 0.248341625207
-#
-spamWordList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability = getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, 3, 200)
-p = predict(trainingSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-print sum(p) / float(len(p))  # 0.191290824261
-p = predict(trainingSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-print sum(p) / float(len(p)) # 0.953125
-p = predict(testSetSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-print sum(p) / float(len(p)) # 0.952182952183
-p = predict(testSetNonSpamFileList, SpamWordSpamProb, SpamWordNonSpamProb, spamProbability)
-print sum(p) / float(len(p)) # 0.214759535655
+trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList = getTrainingTestSet("D:\\projects\\spamEmailClassifier\\spamDataset", "D:\\projects\\spamEmailClassifier\\nonspamDataset")
+trainingSpamTokenList, testSpamTokenList, trainingNonSpamTokenList, testNonSpamTokenList = getNormalizedEmailList(trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList)
 
-# calculate word list based on minSpamNonSpamCountDiff
-def getSpamWordList(trainingSetSpamFileList, trainingSetNonSpamFileList, minSpamNonSpamCountDiff):
-    spamTokens = getTokenCountFromTokenList(getNormalizedTokenList(trainingSetSpamFileList))
-    nonSpamTokens = getTokenCountFromTokenList(getNormalizedTokenList(trainingSetNonSpamFileList))
-    nonSpamTokensDict = dict(nonSpamTokens)
-    SpamTokensDict = dict(spamTokens)
-
-    spamWordList =[ i for i in spamTokens if i[1] >= minSpamNonSpamCountDiff and (i[0] not in nonSpamTokensDict or i[1] - nonSpamTokensDict[i[0]]  >= minSpamNonSpamCountDiff) ]
-
-    totalSpamCount = sum([i[1] for i in spamTokens])
-    totalNonSpamCount = sum([i[1] for i in nonSpamTokens])
-
-    SpamWordSpamProb = [(i[0], i[1] / float(totalSpamCount)) for i in spamWordList]
-
-    SpamWordNonSpamProb = []
-    for i in spamWordList:
-        if i[0] in nonSpamTokensDict:
-            SpamWordNonSpamProb = SpamWordNonSpamProb + [(i[0], nonSpamTokensDict[i[0]] / float(totalNonSpamCount))]
-        else:
-            SpamWordNonSpamProb = SpamWordNonSpamProb + [(i[0], 0.0 / float(totalNonSpamCount))]
-
-    spamProbability = float(totalSpamCount) / (totalSpamCount + totalNonSpamCount)
-    return spamWordList, dict(SpamWordSpamProb), dict(SpamWordNonSpamProb), spamProbability
-
-
+wordList, wordDistributionInSpam, wordDistributionInNonSpam, spamProbability =  getSpamWordList(trainingSpamTokenList,trainingNonSpamTokenList, 9, 2, 1, 9)
+predict(testNonSpamTokenList, wordDistributionInSpam, wordDistributionInNonSpam, spamProbability)

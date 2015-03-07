@@ -3,6 +3,7 @@ from os import listdir
 from os.path import isfile, join
 import random
 import re
+from stemming.porter2 import stem
 
 def getTrainingTestSet(spamDir, nonSpamDir):
     spamFiles = [ f for f in listdir(spamDir) if isfile(join(spamDir,f)) ]
@@ -15,21 +16,17 @@ def getTrainingTestSet(spamDir, nonSpamDir):
     return trainingSetSpam, testSetSpam, trainingSetNonSpam, testSetNonSpam
 
 
-# def createEmailList(spamFile, nonSpamFile):
-#     spamEmailList = []
-#     with open(spamFile, 'r') as file :
-#         curEmail = ''
-#         for curLine in file:
-#             line = curLine.strip()
-#             if line == '----':
-#                 if curEmail != "":
-#                     spamEmailList = spamEmailList + [curEmail]
-#                 curEmail = ''
-#             elif curEmail != "":
-#                 curEmail = curEmail + ' ' + line
-#             else:
-#                 curEmail = line
-#     return spamEmailList
+def getNormalizedEmailList(trainingSetSpam, testSetSpam, trainingSetNonSpam, testSetNonSpam):
+    def readFileListAndNormalize(fileList):
+        res = []
+        for i in fileList:
+            with open(i, 'r') as file :
+                data=file.read()
+                res = res + [getTokensFromStr(data)]
+        return res
+    return readFileListAndNormalize(trainingSetSpam), readFileListAndNormalize(testSetSpam), readFileListAndNormalize(trainingSetNonSpam), readFileListAndNormalize(testSetNonSpam)
+
+
 
 def getTokensFromStr(email):
     p = re.compile(r'\w*\s*@\s\w*\s*.\s*\w*')
@@ -41,16 +38,9 @@ def getTokensFromStr(email):
 
     re.sub('[^0-9a-z]+', '', email)
     data = [filter(str.isalnum, i) for i in email.split()]
-    data = [i for i in data if i != '' and i != 'Subject']
+    data = [stem(i) for i in data if i != '' and i != 'Subject']
     return data
 
-def getNormalizedTokenList(fileList):
-    spamEmailList = []
-    for i in fileList:
-        with open(i, 'r') as file :
-            data=file.read()
-            spamEmailList = spamEmailList + [getTokensFromStr(data)]
-    return spamEmailList
 
 def getTokenCountFromTokenList(tokenList):
     dict = {}
@@ -63,12 +53,7 @@ def getTokenCountFromTokenList(tokenList):
     #sorted_x = sorted(x.items(), key=operator.itemgetter(1))
     listOfTuples = [(k, v) for k, v in dict.iteritems()]
     return sorted(listOfTuples, key=lambda tup: tup[1],  reverse=True)
-
-
-
-# spamSet = getSpamDataSet("spamDataset")
-# nonSpamList = [i[0] for i in getTokenCountFromTokenList(getSpamDataSet("nonspamDataset")) if i[1] > 2]
-# spam =[ i for i in getTokenCountFromTokenList(spamSet) if i[1] > 1 and i[0] not in nonSpamList]
 #
-# print len(spam)
-# print spam
+# trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList = getTrainingTestSet("D:\\projects\\spamEmailClassifier\\spamDataset", "D:\\projects\\spamEmailClassifier\\nonspamDataset")
+# trainingSpamTokenList, testSpamTokenList, trainingNonSpamTokenList, testNonSpamTokenList = getNormalizedEmailList(trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList)
+# print trainingSpamTokenList, testSpamTokenList, trainingNonSpamTokenList, testNonSpamTokenList
