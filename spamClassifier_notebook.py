@@ -12,15 +12,12 @@ from Preprocesser import *
 from NaiveBayes import *
 
 
+# # My Naive Bayes Classifier
+
 # In[3]:
 
 trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList = getTrainingTestSet("D:\\projects\\spamEmailClassifier\\spamDataset", "D:\\projects\\spamEmailClassifier\\nonspamDataset")
 trainingSpamTokenList, testSpamTokenList, trainingNonSpamTokenList, testNonSpamTokenList = getNormalizedEmailList(trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList)
-
-
-# In[ ]:
-
-
 
 
 # In[4]:
@@ -104,10 +101,13 @@ tf_transformer = TfidfTransformer(use_idf=False).fit(X_train_counts)
 X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
 
 
-# In[13]:
+# In[77]:
 
 target = map (lambda x : 1, trainingSpamEmails)
 target += map(lambda x : 0, trainingNonSpamEmails)
+
+testTarget = map (lambda x : 1, testSpamEmails)
+testTarget += map(lambda x : 0, testNonSpamEmails)
 print len(target), len(trainingSpamEmails) + len(trainingNonSpamEmails)
 
 
@@ -189,4 +189,55 @@ print "test spam set: ", float(np.sum(predict)) / len(predict)
 
 predict = clf_normalized.predict(count_vect_normalized.transform(testNonSpamNormalizedEmails))
 print "test nonspam set: ", 1- float(np.sum(predict)) / len(predict)
+
+
+# ### use pipeline
+
+# In[43]:
+
+from sklearn.pipeline import Pipeline
+text_clf = Pipeline([('vect', CountVectorizer()),
+     ('tfidf', TfidfTransformer()),
+     ('clf', MultinomialNB()),
+])
+text_clf = text_clf.fit(trainingSpamNormalizedEmails + trainingNonSpamNormalizedEmails, target)  
+
+
+# In[45]:
+
+predicted = text_clf.predict(trainingSpamNormalizedEmails + trainingNonSpamNormalizedEmails)
+print predicted
+np.mean(predicted == target)    
+
+
+# In[48]:
+
+from sklearn import metrics
+print(metrics.classification_report(target, predicted,
+    target_names=['non-spam', 'spam']))
+
+
+# # Sklearn SVM 
+
+# In[74]:
+
+from sklearn import svm
+clf = svm.SVC(class_weight = 'auto', kernel = 'linear')
+clf.fit(X_train_counts_normalized, target)
+
+
+# In[75]:
+
+predict = clf.predict(count_vect_normalized.transform(trainingSpamNormalizedEmails))
+print float(sum(predict)) / len(predict)
+
+predict = clf.predict(count_vect_normalized.transform(trainingNonSpamNormalizedEmails))
+print 1- float(sum(predict)) / len(predict)
+
+
+# In[78]:
+
+predicted = clf.predict(count_vect_normalized.transform(testSpamNormalizedEmails + testNonSpamNormalizedEmails))
+print(metrics.classification_report(testTarget, predicted,
+    target_names=['non-spam', 'spam']))
 
