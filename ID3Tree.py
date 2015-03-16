@@ -3,6 +3,7 @@ __author__ = 'Yu Zhao'
 # use trainingMatrix.tolist() as traning vectors and y.tolist() as lables
 import math
 import operator
+from random import randint
 def calInformationCon(labels):
     labelCounts = {}
     totalCount = 0
@@ -32,11 +33,10 @@ def splitDataByFeaturePosAndFeatureFilter(dataSet, labels, featurePos, f):
         i += 1
     return retDataSet, retLabel
 
-def chooseBestFeatureIndexToSplit(dataSet, labels):
-    baseInfoContent = calInformationCon(labels)
+def chooseBestFeatureIndexToSplit(dataSet, labels, featureToConsiderIndexList):
     bestFeature = -1
     bestEntropy = -1
-    for i in range(len(dataSet[0])):
+    for i in featureToConsiderIndexList:
         featureVals = [row[i] for row in dataSet]
         featureSet = set(featureVals)
         newEntropy = 0.0
@@ -49,11 +49,28 @@ def chooseBestFeatureIndexToSplit(dataSet, labels):
                 bestFeature = i
     return bestFeature
 
+def bootstrapTrainingData(dataSet, labels, sampleSize):
+    res = []
+    resLabel = []
+    for i in range(sampleSize):
+        r =  randint(0, len(dataSet) - 1)
+        res += [dataSet[r]]
+        resLabel += [labels[r]]
+    return res
 
-def createTree(dataSet, labels, wordList):
+def sampleFeatureIndex(featureLen, size):
+    res = []
+    featureIndexList = range(featureLen)
+    for i in range(size):
+        r = randint(0, len(featureIndexList) - 1)
+        res += [featureIndexList[r]]
+        del(featureIndexList[r])
+    return res
+
+def createTree(dataSet, labels, wordList, numFeatureToConsider):
     res = {}
     if labels.count(labels[0]) == len(labels):
-        if labels[0]:
+        if labels[0] == 1:
             res[-1] = 1
         else:
             res[-1] = -1
@@ -68,20 +85,21 @@ def createTree(dataSet, labels, wordList):
                 labelCount[i] = 1
 
         sortedByValue = sorted(labelCount.iteritems(), key = operator.itemgetter(1), reverse=True)
-        if sortedByValue[0][0]:
+        if sortedByValue[0][0] == 1:
             res[-1] = 1
         else:
             res[-1] = -1
         return res
 
     else:
-        splitFeatureIndex = chooseBestFeatureIndexToSplit(dataSet, labels)
+        featureListByIndex = sampleFeatureIndex(len(wordList), numFeatureToConsider)
+        splitFeatureIndex = chooseBestFeatureIndexToSplit(dataSet, labels, featureListByIndex)
         id3Tree = {wordList[splitFeatureIndex]:{}}
         splitFeatureVals = set([ row[splitFeatureIndex] for row in dataSet])
         for i in splitFeatureVals:
             subData, subLabels = splitDataByFeaturePosAndFeatureFilter(dataSet, labels, splitFeatureIndex, lambda x: x == i)
             nextWordList = wordList[:splitFeatureIndex] + wordList[splitFeatureIndex+1:]
-            id3Tree[wordList[splitFeatureIndex]][i] = createTree(subData, subLabels, nextWordList)
+            id3Tree[wordList[splitFeatureIndex]][i] = createTree(subData, subLabels, nextWordList, numFeatureToConsider - 1)
         return id3Tree
 
 def predict(emailVector, tree, wordList):
