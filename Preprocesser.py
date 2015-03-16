@@ -27,6 +27,13 @@ def getNormalizedEmailList(trainingSetSpam, testSetSpam, trainingSetNonSpam, tes
     return readFileListAndNormalize(trainingSetSpam), readFileListAndNormalize(testSetSpam), readFileListAndNormalize(trainingSetNonSpam), readFileListAndNormalize(testSetNonSpam)
 
 
+def readFileListAndNormalize(fileList):
+    res = []
+    for i in fileList:
+        with open(i, 'r') as file :
+            data=file.read()
+            res = res + [data]
+    return res
 
 def getTokensFromStr(email):
     p = re.compile(r'\w*\s*@\s\w*\s*.\s*\w*')
