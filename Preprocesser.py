@@ -11,6 +11,7 @@ def getTrainingTestSet(spamDir, nonSpamDir):
     testSetSpam = [spamDir + '/' + i for i in spamFiles if i not in trainingSetSpam]
 
     nonSpamFiles = [ f for f in listdir(nonSpamDir) if isfile(join(nonSpamDir,f)) ]
+
     trainingSetNonSpam =  map(lambda x: nonSpamDir + '/' + x, random.sample(nonSpamFiles,int(len(nonSpamFiles) * 0.8)))
     testSetNonSpam = [nonSpamDir + '/' + i for i in nonSpamFiles if i not in trainingSetNonSpam]
     return trainingSetSpam, testSetSpam, trainingSetNonSpam, testSetNonSpam

@@ -56,10 +56,14 @@ def bootstrapTrainingData(dataSet, labels, sampleSize):
         r =  randint(0, len(dataSet) - 1)
         res += [dataSet[r]]
         resLabel += [labels[r]]
-    return res
+    return res, resLabel
 
 def sampleFeatureIndex(featureLen, size):
     res = []
+    if featureLen == 1:
+        for i in range(size):
+            res += [0]
+        return res
     featureIndexList = range(featureLen)
     for i in range(size):
         r = randint(0, len(featureIndexList) - 1)
@@ -75,7 +79,7 @@ def createTree(dataSet, labels, wordList, numFeatureToConsider):
         else:
             res[-1] = -1
         return res
-    if len(dataSet[0]) == 1:  # only one feature left, return majority Count
+    if len(dataSet[0]) == 1 or numFeatureToConsider == 0:  # only one feature left, return majority Count
         distinctElements = set(i[0] for i in dataSet)
         labelCount = {}
         for i in distinctElements:
@@ -111,3 +115,50 @@ def predict(emailVector, tree, wordList):
             if emailVector[wordIndex] in tree[splitWord]:
                 value = emailVector[wordIndex]
                 return predict(emailVector, tree[splitWord][value], wordList)
+
+def createForrest(dataSet, labels, numTrees, bootstrapSampleSize, numFeatures, wordList):
+    trees = []
+    for i in range(numTrees):
+        bootstrapDataSet, bootStrapLabels = bootstrapTrainingData(dataSet, labels, bootstrapSampleSize)
+        tree = createTree(bootstrapDataSet, bootStrapLabels, wordList, numFeatures)
+        trees += [tree]
+    return trees
+
+def forrestPredict(emailVector, trees, wordList):
+    res = []
+    for tree in trees:
+        res += [ predict(emailVector, tree, wordList)  ]
+    countSpam = len(  [i for i in res if i == 1] )
+    countNonSpam = len(res) - countSpam
+    if countSpam > countNonSpam:
+        return 1
+    else:
+        return -1
+
+def dumpToFile(data, fileName):
+    import pickle
+    fw = open(fileName, 'w')
+    pickle.dump(data, fw)
+    fw.close()
+
+def grabDataFromFile(fileName):
+    import pickle
+    fw = open(fileName)
+    return pickle.load(fw)
+
+
+
+trainingDataSet = grabDataFromFile('trainingDataSet')
+trainingLabels = grabDataFromFile('trainingLabels')
+testDataSet = grabDataFromFile('testDataSet')
+testLabels = grabDataFromFile('testLabels')
+wordList = grabDataFromFile('wordList_145')
+
+
+# for i in range(len(toDump)):
+#     toDump[i] = grabDataFromFile(fileNames[i])
+
+tree = createTree(trainingDataSet, trainingLabels, wordList, len(wordList))
+print tree
+
+#trees = createForrest(trainingDataSet, trainingLabels, numTrees=1, bootstrapSampleSize=20, numFeatures=30, wordList = wordList)

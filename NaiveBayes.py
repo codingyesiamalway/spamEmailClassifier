@@ -53,16 +53,16 @@ def predict(emailTokenList, wordDistributionInSpam, wordDistributionInNonSpam, s
         nonSpamProbAll.append(math.exp(nonSpamProb))
     return prob, spamProbAll, nonSpamProbAll
 
-
-trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList = getTrainingTestSet("D:\\projects\\spamEmailClassifier\\spamDataset", "D:\\projects\\spamEmailClassifier\\nonspamDataset")
-
-spamTrainSample = [ trainingSetSpamFileList[i] for i in sorted(random.sample(xrange(len(trainingSetSpamFileList)), 20))]
-spamTestSample = [ testSetSpamFileList[i] for i in sorted(random.sample(xrange(len(testSetSpamFileList)), 20))]
-noneSpamTrainSample = [ trainingSetNonSpamFileList[i] for i in sorted(random.sample(xrange(len(trainingSetNonSpamFileList)), 20))]
-noneSpamTestSample = [ testSetNonSpamFileList[i] for i in sorted(random.sample(xrange(len(testSetNonSpamFileList)), 20))]
-
-trainingSpamTokenList, testSpamTokenList, trainingNonSpamTokenList, testNonSpamTokenList = getNormalizedEmailList(spamTrainSample, spamTestSample, noneSpamTrainSample, noneSpamTestSample)
-
-
-wordList, wordDistributionInSpam, wordDistributionInNonSpam, spamProbability =  getSpamWordList(trainingSpamTokenList,trainingNonSpamTokenList, 9, 2, 1, 9999999999)
-predict(testNonSpamTokenList, wordDistributionInSpam, wordDistributionInNonSpam, spamProbability)
+#
+# trainingSetSpamFileList, testSetSpamFileList, trainingSetNonSpamFileList, testSetNonSpamFileList = getTrainingTestSet("D:\\projects\\spamEmailClassifier\\spamDataset", "D:\\projects\\spamEmailClassifier\\nonspamDataset")
+#
+# spamTrainSample = [ trainingSetSpamFileList[i] for i in sorted(random.sample(xrange(len(trainingSetSpamFileList)), 20))]
+# spamTestSample = [ testSetSpamFileList[i] for i in sorted(random.sample(xrange(len(testSetSpamFileList)), 20))]
+# noneSpamTrainSample = [ trainingSetNonSpamFileList[i] for i in sorted(random.sample(xrange(len(trainingSetNonSpamFileList)), 20))]
+# noneSpamTestSample = [ testSetNonSpamFileList[i] for i in sorted(random.sample(xrange(len(testSetNonSpamFileList)), 20))]
+#
+# trainingSpamTokenList, testSpamTokenList, trainingNonSpamTokenList, testNonSpamTokenList = getNormalizedEmailList(spamTrainSample, spamTestSample, noneSpamTrainSample, noneSpamTestSample)
+#
+#
+# wordList, wordDistributionInSpam, wordDistributionInNonSpam, spamProbability =  getSpamWordList(trainingSpamTokenList,trainingNonSpamTokenList, 9, 2, 1, 9999999999)
+# predict(testNonSpamTokenList, wordDistributionInSpam, wordDistributionInNonSpam, spamProbability)
