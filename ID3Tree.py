@@ -157,6 +157,41 @@ def getPredictionAccuracyUsingTrees(trees, data, label, wordList):
     pred = [label[i] == predictList[i] for i in range(len(predictList))]
     return float(sum(pred)) / len(pred)
 
+def sklearnRandomForest():
+    trainingDataSet = grabDataFromFile('trainingDataSet')
+    trainingLabels = grabDataFromFile('trainingLabels')
+    testDataSet = grabDataFromFile('testDataSet')
+    testLabels = grabDataFromFile('testLabels')
+    wordList = grabDataFromFile('wordList_145')
+
+    from sklearn.ensemble import RandomForestClassifier
+
+
+    trainPreds = []
+    testPreds = []
+    for numTree in range(1, 50, 2):
+        clf = RandomForestClassifier(n_estimators=numTree,  n_jobs= 8, max_features=100)
+        clf = clf.fit(trainingDataSet, trainingLabels)
+
+        p = clf.predict(testDataSet)
+        trainPred = [ p[i] == trainingLabels[i] for i in range(len(trainingDataSet)) ]
+        trainPreds += [float(sum(trainPred)) / len(trainPred)]
+
+
+        #print numTree, 'train', float(sum(trainPred)) / len(trainPred)
+
+        p = clf.predict(testDataSet)
+        testPred = [ p[i] == testLabels[i] for i in range(len(testDataSet)) ]
+
+        testPreds += [float(sum(testPred)) / len(testPred)]
+        #print numTree, 'test', float(sum(testPred)) / len(testPred)
+    import matplotlib.pyplot as plt
+    print len(range(1, 50, 2)), len(trainPreds), len(testPreds)
+    plt.scatter(range(1, 50, 2), trainPreds, color = 'b')
+    plt.scatter(range(1, 50, 2), testPreds, color = 'r')
+    plt.show()
+
+
 
 def main():
     trainingDataSet = grabDataFromFile('trainingDataSet')
@@ -175,4 +210,4 @@ def main():
     print 'Test set accuracy: ', testPred
 
 if __name__ == "__main__":
-    main()
+    sklearnRandomForest()
