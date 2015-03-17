@@ -146,19 +146,33 @@ def grabDataFromFile(fileName):
     fw = open(fileName)
     return pickle.load(fw)
 
+def getPredictionAccuracyUsingTrees(trees, data, label, wordList):
+    predictList = []
+    for i in data:
+        t = forrestPredict(i, trees, wordList)
+        if t is None:
+            predictList += [ '-9' ]
+        else:
+            predictList += [t ]
+    pred = [label[i] == predictList[i] for i in range(len(predictList))]
+    return float(sum(pred)) / len(pred)
 
 
-trainingDataSet = grabDataFromFile('trainingDataSet')
-trainingLabels = grabDataFromFile('trainingLabels')
-testDataSet = grabDataFromFile('testDataSet')
-testLabels = grabDataFromFile('testLabels')
-wordList = grabDataFromFile('wordList_145')
+def main():
+    trainingDataSet = grabDataFromFile('trainingDataSet')
+    trainingLabels = grabDataFromFile('trainingLabels')
+    testDataSet = grabDataFromFile('testDataSet')
+    testLabels = grabDataFromFile('testLabels')
+    wordList = grabDataFromFile('wordList_145')
+    #
+    # trees = createForrest(trainingDataSet, trainingLabels, numTrees=2, bootstrapSampleSize=500, numFeatures=80, wordList = wordList)
 
+    trees = grabDataFromFile('forest_20_trees')
 
-# for i in range(len(toDump)):
-#     toDump[i] = grabDataFromFile(fileNames[i])
+    trainingPred = getPredictionAccuracyUsingTrees(trees, trainingDataSet, trainingLabels, wordList)
+    testPred = getPredictionAccuracyUsingTrees(trees, testDataSet, testLabels, wordList)
+    print 'Training set accuracy: ', trainingPred
+    print 'Test set accuracy: ', testPred
 
-tree = createTree(trainingDataSet, trainingLabels, wordList, len(wordList))
-print tree
-
-#trees = createForrest(trainingDataSet, trainingLabels, numTrees=1, bootstrapSampleSize=20, numFeatures=30, wordList = wordList)
+if __name__ == "__main__":
+    main()
